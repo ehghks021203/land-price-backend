@@ -1,32 +1,57 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-#from app.routes import auth, geographical_info, get_land_data, get_land_list, land_favorites, land_info, land_list, land_management, profile, region_marker, server_status, user_land
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from app.config.database import USER_NAME, USER_PW, DATABASE_NAME
+from app.metadata import tags_metadata
+from app.schemas import KUMapBaseResponse
 
-app = FastAPI()
+# SQLAlchemy config
+SQLALCHEMY_DATABASE_URL = f'mysql://{USER_NAME}:{USER_PW}@localhost:3306/{DATABASE_NAME}'
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# 라우터 등록
-#app.include_router(auth.router)
-#app.include_router(geographical_info.router)
-#app.include_router(get_land_data.router)
-#app.include_router(get_land_list.router)
-#app.include_router(land_favorites.router)
-#app.include_router(land_info.router)
-#app.include_router(land_list.router)
-#app.include_router(land_management.router)
-#app.include_router(profile.router)
-#app.include_router(region_marker.router)
-#app.include_router(server_status.router)
-#app.include_router(user_land.router)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-class ItemOut(BaseModel):
-    result: str
-    msg: str
-    err_code: str
+# FastAPI config
+app = FastAPI(
+    title='KUMap REST API',
+    version='0.0.1',
+    openapi_tags=tags_metadata,
+)
 
-@app.get("/", response_model=ItemOut)
+origins = [
+    'http://localhost',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:51203'
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # 허용할 도메인 목록
+    allow_credentials=True, # 쿠키 포함 여부
+    allow_methods=['*'],    # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE 등)
+    allow_headers=['*'],    # 모든 HTTP 헤더 허용
+)
+
+@app.get('/', response_model=KUMapBaseResponse)
 def server_status():
     return {
-        "result":"success", 
-        "msg":"server is online",
-        "err_code":"00"
+        'status':'success', 
+        'message':'서버가 정상적으로 동작하고 있습니다.',
+        'err_code':'00'
     }
+
+
+# include routers
+from app.routes.auth import auth_router
+
+app.include_router(auth_router)
