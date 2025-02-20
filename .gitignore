@@ -11,7 +11,7 @@ __pypackages__/
 SSL/
 
 # static image files
-static/images/
+app/static/images/
 
 # misc
 .env
