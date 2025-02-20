@@ -10,6 +10,9 @@ __pypackages__/
 # SSL Certificant
 SSL/
 
+# static image files
+static/images/
+
 # misc
 .env
 
