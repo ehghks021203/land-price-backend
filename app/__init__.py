@@ -53,5 +53,7 @@ def server_status():
 
 # include routers
 from app.routes.auth import auth_router
+from app.routes.user import user_router
 
 app.include_router(auth_router)
+app.include_router(user_router)
