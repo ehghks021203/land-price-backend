@@ -11,8 +11,9 @@ import string
 import smtplib
 from sqlalchemy.orm import Session
 from app import get_db, SessionLocal, engine
-from app.config.auth import SECRET_KEY
+from app.config.auth import SECRET_KEY, JWTBearer
 from app.config.mail import SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD
+from app.config.server import SERVER_DOMAIN
 from app.functions.auth import create_access_token
 from app.models.user import User
 from app.schemas import AUTH, KUMapBaseResponse
@@ -69,13 +70,13 @@ def duplicate_check(request: AUTH.DuplicateCheckRequest, db: Session = Depends(g
 def register(request: AUTH.RegisterRequset, db: Session = Depends(get_db)):
     # format check
     # email
-    if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", user.email):
+    if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", request.email):
         raise HTTPException(status_code=400, detail="Invalid email format")
     # nickname
-    if not re.match(r"^[ㄱ-ㅎ|가-힣|a-zA-Z0-9]{1,8}$", user.nickname):
+    if not re.match(r"^[ㄱ-ㅎ|가-힣|a-zA-Z0-9]{1,20}$", request.nickname):
         raise HTTPException(status_code=400, detail="Invalid nickname format or length")
     # password
-    if not re.match(r"^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{10,25}$", user.password):
+    if not re.match(r"^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{10,25}$", request.password):
         raise HTTPException(status_code=400, detail="Invalid password format or length")
 
     # duplicate check
@@ -103,9 +104,8 @@ def register(request: AUTH.RegisterRequset, db: Session = Depends(get_db)):
     }
 
 @auth_router.get('/protected', response_model=AUTH.ProtectedResponse)
-def protected(token: str = Depends(oauth2_schema), db: Session = Depends(get_db)):
+def protected(payload: dict = Depends(JWTBearer()), db: Session = Depends(get_db)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get('sub')
         if not email:
             raise HTTPException(status_code=401, detail='Invalid token')
@@ -119,11 +119,40 @@ def protected(token: str = Depends(oauth2_schema), db: Session = Depends(get_db)
             'message': 'user authentication',
             'err_code': '00',
             'email': user.email,
-            'user': user.nickname,
+            'nickname': user.nickname,
             'name': user.name,
+            'phone': user.phone if user.phone is not None else '',
+            'phone_verified': user.phone_verified,
+            'image': SERVER_DOMAIN + (user.profile_image_url if user.profile_image_url is not None else '/user/images'),
         }
     except JWTError:
         raise HTTPException(status_code=401, detail='Invalid token')
+
+# @auth_router.post('/refresh-token', response_model=AUTH.RefreshTokenResponse)
+# def refresh_token(request: AUTH.RefreshTokenRequest, db: Session = Depends(get_db)):
+#     try:
+#         ppayload = JWTBearer().decode_jwt(request.refresh_token)
+#         email = payload.get('sub')
+#         if not email:
+#             raise HTTPException(status_code=401, detail='Invalid token')
+
+#         user = db.query(User).filter(User.email == email).first()
+#         if not user:
+#             raise HTTPException(status_code=404, detail='User not found')
+
+#         # 새로운 액세스 토큰 생성
+#         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#         new_access_token = create_access_token(data={'sub': user.email}, expires_delta=access_token_expires)
+
+#         return {
+#             'status': 'success',
+#             'message': '새로운 액세스 토큰 발급 성공',
+#             'err_code': '00',
+#             'access_token': new_access_token,
+#         }
+#     except JWTError:
+#         raise HTTPException(status_code=401, detail='Invalid refresh token')
+
 
 @auth_router.post('/reset-password', response_model=KUMapBaseResponse)
 def reset_password(request: AUTH.ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -137,8 +166,7 @@ def reset_password(request: AUTH.ResetPasswordRequest, db: Session = Depends(get
         + ''.join(random.sample(string.punctuation, 1))
     )
 
-    hashed_password = password_context.hash(random_password)
-    user.password = hashed_password.decode('utf-8')
+    user.password = password_context.hash(random_password)
     db.commit()
 
     # send to email

@@ -22,8 +22,11 @@ class RegisterRequset(BaseModel):
 
 class ProtectedResponse(KUMapBaseResponse):
     email: EmailStr
-    user: str
     name: str
+    nickname: str
+    phone: str
+    phone_verified: bool
+    image: str
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
