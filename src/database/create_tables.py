@@ -14,7 +14,8 @@ def create_user(connection: object):
             name VARCHAR(20) NOT NULL,
             nickname VARCHAR(20) NOT NULL,
             phone VARCHAR(20),
-            profile_image_url VARCHAR(20),
+            phone_verified TINYINT(1) DEFAULT 0,
+            profile_image_url VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
