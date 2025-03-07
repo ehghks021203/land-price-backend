@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from app.config import APP_DIR
 from app.config.database import USER_NAME, USER_PW, DATABASE_NAME
 from app.metadata import tags_metadata
 from app.schemas import KUMapBaseResponse
@@ -42,18 +45,25 @@ app.add_middleware(
     allow_headers=['*'],    # 모든 HTTP 헤더 허용
 )
 
+app.mount('/static', StaticFiles(directory=os.path.join(APP_DIR, 'static')), name='static')
+
 @app.get('/', response_model=KUMapBaseResponse)
 def server_status():
     return {
         'status':'success', 
         'message':'서버가 정상적으로 동작하고 있습니다.',
-        'err_code':'00'
     }
 
 
 # include routers
 from app.routes.auth import auth_router
+from app.routes.geo import geo_router
+from app.routes.land import land_router
 from app.routes.user import user_router
+from app.routes.map import map_router
 
 app.include_router(auth_router)
+app.include_router(geo_router)
+app.include_router(land_router)
 app.include_router(user_router)
+app.include_router(map_router)
