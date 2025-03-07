@@ -1,0 +1,5 @@
+import os
+
+KAKAO_API_KEY = os.getenv('KAKAO_API_KEY')
+KAKAO_JAVASCRIPT_API_KEY = os.getenv('KAKAO_JAVASCRIPT_API_KEY')
+VWORLD_API_KEY = os.getenv('VWORLD_API_KEY')
