@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import APP_DIR
@@ -11,10 +12,14 @@ from app.metadata import tags_metadata
 from app.schemas import KUMapBaseResponse
 
 # SQLAlchemy config
-SQLALCHEMY_DATABASE_URL = f'mysql://{USER_NAME}:{USER_PW}@localhost:3306/{DATABASE_NAME}'
+SQLALCHEMY_DATABASE_URL = (
+    f"mysql://{USER_NAME}:{USER_PW}@localhost:3306/{DATABASE_NAME}"
+)
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionAsync = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()
@@ -23,35 +28,44 @@ def get_db():
     finally:
         db.close()
 
+
+async def get_async_db():
+    async with SessionAsync() as session:
+        yield session
+
+
 # FastAPI config
 app = FastAPI(
-    title='KUMap REST API',
-    version='0.0.1',
+    title="KUMap REST API",
+    version="0.0.1",
     openapi_tags=tags_metadata,
 )
 
 origins = [
-    'http://localhost',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:51203'
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:51203",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,  # 허용할 도메인 목록
-    allow_credentials=True, # 쿠키 포함 여부
-    allow_methods=['*'],    # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE 등)
-    allow_headers=['*'],    # 모든 HTTP 헤더 허용
+    allow_credentials=True,  # 쿠키 포함 여부
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE 등)
+    allow_headers=["*"],  # 모든 HTTP 헤더 허용
 )
 
-app.mount('/static', StaticFiles(directory=os.path.join(APP_DIR, 'static')), name='static')
+app.mount(
+    "/static", StaticFiles(directory=os.path.join(APP_DIR, "static")), name="static"
+)
 
-@app.get('/', response_model=KUMapBaseResponse)
+
+@app.get("/", response_model=KUMapBaseResponse)
 def server_status():
     return {
-        'status':'success', 
-        'message':'서버가 정상적으로 동작하고 있습니다.',
+        "status": "success",
+        "message": "서버가 정상적으로 동작하고 있습니다.",
     }
 
 

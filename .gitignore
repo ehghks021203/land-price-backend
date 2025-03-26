@@ -8,7 +8,7 @@ __pycache__/
 __pypackages__/
 
 # SSL Certificant
-SSL/
+cert/
 
 # static image files
 app/static/images/

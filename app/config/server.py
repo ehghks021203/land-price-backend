@@ -1,3 +1,3 @@
 import os
 
-SERVER_DOMAIN = os.getenv('SERVER_DOMAIN')
+SERVER_DOMAIN = os.getenv("SERVER_DOMAIN")

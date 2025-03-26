@@ -1,6 +1,6 @@
 tags_metadata = [
     {
-        'name': 'default',
-        'description': 'check server status',
+        "name": "default",
+        "description": "check server status",
     },
 ]

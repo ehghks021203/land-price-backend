@@ -1,4 +1,4 @@
-window.onload = function () {
+kakao.maps.load(function () {
   var mapContainer = document.getElementById("subMap");
   var rvContainer = document.getElementById("roadview");
 
@@ -93,4 +93,4 @@ window.onload = function () {
       $(".roadview").css("visibility", "hidden");
     }
   }
-};
+});
